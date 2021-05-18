@@ -21,3 +21,14 @@ exports.default = async function (req, res) {
         return false;
     }
 };
+
+exports.valid = async function (req, res) {
+    const accessToken = req.body.accessToken;
+
+    // accessToken 값 확인
+    console.log('accessToken >>', accessToken);
+
+    //
+
+
+};
