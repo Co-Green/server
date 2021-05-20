@@ -3,7 +3,7 @@ const {logger} = require('../../../config/winston');
 
 const questionDao = require('../dao/questionDao');
 
-submit = async (req, res) => {
+submitQuestionAnswer = async (req, res) => {
     let {
         answer1, answer2, answer3, answer4, answer5
     } = req.body
@@ -44,9 +44,10 @@ submit = async (req, res) => {
     // answers 저장
     let userIndex = 1; // 임시
     const answerList = [answer1, answer2, answer3, answer4, answer5];
+    const today = date.getFullYear() + 
     answerList.forEach(async (item, index) => {
         try {
-            await questionDao.insertAnswer(userIndex, index+1, item);
+            await questionDao.insertQuestionAnswer(userIndex, index+1, item, today);
         } catch(err) {
             logger.error(`API 4 - Insert answer Query Error\n: ${JSON.stringify(err)}`);
             return;
@@ -71,7 +72,53 @@ submit = async (req, res) => {
     
 };
 
+showMission = async (req, res) => {
+    let missionIndex = req.params.id;
+    // const userIndex = req.verifiedToken.userIndex;
+    let userIndex = 1; // 임시
+
+    // validation
+    try {
+        if (!missionIndex) {
+            return res.json({isSuccess: false, code: 400, message: "유효하지 않은 인덱스"});
+        }
+
+        missionIndex = parseInt(missionIndex, 10);
+        if (Number.isNaN(missionIndex)) {
+            return res.json({isSuccess: false, code: 400, message: "유효하지 않은 인덱스"});
+        } 
+        
+        const isValidMissionIndexRows = await questionDao.isValidMissionIndex(missionIndex);
+        if (isValidMissionIndexRows.length === 0 )
+            return res.json({isSuccess: false, code: 404, message: "존재하지 않는 미션"});
+    } catch(err) {
+        logger.error(`API 5 - Validation Error\n: ${JSON.stringify(err)}`);
+        return;
+    }
+
+    try {
+        const [selectMissonAndAnswerRows] = await questionDao.selectMissonAndAnswer(missionIndex, userIndex);
+        
+        res.json({
+            isSuccess: true,
+            code: 200,
+            message: "미션 조회 성공",
+            result: selectMissonAndAnswerRows[0]
+        })
+    } catch(err) {
+        logger.error(`API 5 - Select Query Error\n: ${JSON.stringify(err)}`);
+        return;
+    }
+};
+
+submitMissionAnswer = async (req, res) => {
+    let missionIndex = req.params.id;
+    // const userIndex = req.verifiedToken.userIndex;
+};
+
 
 module.exports = {
-    submit
+    submitQuestionAnswer,
+    showMission,
+    submitMissionAnswer,
 }
