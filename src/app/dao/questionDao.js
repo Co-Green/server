@@ -55,8 +55,59 @@ selectMissonAndAnswer = async (missionIndex, userIndex) => {
     return [selectMissonAndAnswerRow];
 };
 
+selectMissionAnswer = async (missionIndex, userIndex) => {
+    const connection = await pool.getConnection(async (conn) => conn);
+    const selectMissionAnswerQuery = `
+        SELECT missionAnswerIndex
+        FROM missionAnswer
+        WHERE missionIndex = ? AND userIndex = ?;
+      `;
+    const selectMissionAnswerParams = [missionIndex, userIndex];
+    const [selectMissionAnswerRow] = await connection.query(
+      selectMissionAnswerQuery,
+      selectMissionAnswerParams
+    );
+    connection.release();
+    return [selectMissionAnswerRow];
+};
+
+insertMissionAnswer = async (missionIndex, userIndex, answer1, answer2, answer3, isTemp) => {
+    const connection = await pool.getConnection(async (conn) => conn);
+    const insertMissionAnswerQuery = `
+        INSERT INTO missionAnswer(userIndex, missionIndex, answer1, answer2, answer3, isTemp)
+        VALUES (
+            ?, ?, ?, ?, ?,
+            IF (${isTemp} = 1, 1, 0)
+        );
+      `;
+    const insertMissionAnswerParams = [missionIndex, userIndex, answer1, answer2, answer3];
+    const insertMissionAnswerRow = await connection.query(
+      insertMissionAnswerQuery,
+      insertMissionAnswerParams
+    );
+    connection.release();
+}
+
+updateMissionAnswer = async (missionIndex, userIndex, answer1, answer2, answer3, isTemp) => {
+    const connection = await pool.getConnection(async (conn) => conn);
+    const updateMissionAnswerQuery = `
+        UPDATE missionAnswer
+        SET answer1 = ?, answer2 = ?, answer3 = ?, isTemp = ?
+        WHERE missionIndex = ? AND userIndex = ?;
+      `;
+    const updateMissionAnswerParams = [answer1, answer2, answer3, isTemp, missionIndex, userIndex];
+    const updateMissionAnswerRow = await connection.query(
+      updateMissionAnswerQuery,
+      updateMissionAnswerParams
+    );
+    connection.release();
+}
+
 module.exports = {
   insertQuestionAnswer,
   isValidMissionIndex,
   selectMissonAndAnswer,
+  selectMissionAnswer,
+  insertMissionAnswer,
+  updateMissionAnswer
 };

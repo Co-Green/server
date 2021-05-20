@@ -114,6 +114,93 @@ showMission = async (req, res) => {
 submitMissionAnswer = async (req, res) => {
     let missionIndex = req.params.id;
     // const userIndex = req.verifiedToken.userIndex;
+    let userIndex = 1; // 임시
+    let temp = req.query.temporary;
+    const {
+        answer1, answer2, answer3
+    } = req.body;
+
+    if (temp === "true") { temp = true; }
+    else { temp = false }
+
+    // validation
+    try {
+        if (!missionIndex) {
+            return res.json({isSuccess: false, code: 400, message: "유효하지 않은 인덱스"});
+        }
+
+        missionIndex = parseInt(missionIndex, 10);
+        if (Number.isNaN(missionIndex)) {
+            return res.json({isSuccess: false, code: 400, message: "유효하지 않은 인덱스"});
+        } 
+        
+        const isValidMissionIndexRows = await questionDao.isValidMissionIndex(missionIndex);
+        if (isValidMissionIndexRows.length === 0 )
+            return res.json({isSuccess: false, code: 404, message: "존재하지 않는 미션"});
+
+        if (!temp) {
+            if (!answer1 || !answer2 || !answer3) {
+                return res.json({isSuccess: false, code: 400, message: "답변 미입력"});
+            }
+        }
+    } catch(err) {
+        logger.error(`API 6 - Validation Error\n: ${JSON.stringify(err)}`);
+        return;
+    }
+
+    try {
+        // 조회해서 row가 있으면 수정, 없으면 저장
+        const selectMissionAnswerRows = await questionDao.selectMissionAnswer(missionIndex, userIndex);
+        if (selectMissionAnswerRows.length === 0 ) {
+            // 저장
+            try {
+                if (temp)
+                    await questionDao.insertMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 1);
+                else
+                    await questionDao.insertMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 0);
+            } catch (err) {
+                logger.error(`API 6 - Insert Query Error\n: ${JSON.stringify(err)}`);
+                return;
+            }
+        } else {
+            // 수정
+            try {
+                if (temp)
+                    await questionDao.updateMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 1);
+                else
+                    await questionDao.updateMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 0);
+            } catch (err) {
+                logger.error(`API 6 - Update Query Error\n: ${JSON.stringify(err)}`);
+                return;
+            }
+        }
+
+        const [selectMissonAndAnswerRows] = await questionDao.selectMissonAndAnswer(missionIndex, userIndex);
+
+        const result = {
+            day: selectMissonAndAnswerRows[0].day,
+            missionIndex: selectMissonAndAnswerRows[0].missionIndex,
+            title: selectMissonAndAnswerRows[0].title
+        };
+        
+        if (temp) { // 임시 저장 리턴
+            res.json({
+                isSuccess: true,
+                code: 201,
+                message: "미션 임시 저장 성공"
+            });
+        } else { // 제출 리턴
+            res.json({
+                isSuccess: true,
+                code: 200,
+                message: "미션 제출 성공",
+                result
+            });
+        }
+    } catch(err) {
+        logger.error(`API 6 -  Return Error\n: ${JSON.stringify(err)}`);
+        return;
+    }
 };
 
 
