@@ -4,13 +4,9 @@ module.exports = function(app){
 
     app.get('/app', index.default);
 
-    // Access Token 전송
-    app.post('/valid-token', index.valid);
+    // 소셜 로그인
+    app.post('/user', index.user);
+    app.get('/user', index.user);
 
-    // Access Token 유효성 검사
-    app.get('/valid-token', index.valid);
-
-    // 메인 (유저 프로필)
-    //app.get('/', index.main);
 
 };
