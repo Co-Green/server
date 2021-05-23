@@ -4,27 +4,11 @@ const {pool} = require('../../../config/database');
 const {logger} = require('../../../config/winston');
 
 const jwt = require('jsonwebtoken');
+const secret_config = require('../../../config/secret');
 
 const indexDao = require('../dao/indexDao');
 
 console.log('indexController 실행 중');
-
-exports.default = async function (req, res) {
-    try {
-        const connection = await pool.getConnection(async conn => conn);
-        try {
-            const [rows] = await indexDao.defaultDao();
-            return res.json(rows);
-        } catch (err) {
-            logger.error(`example non transaction Query error\n: ${JSON.stringify(err)}`);
-            connection.release();
-            return false;
-        }
-    } catch (err) {
-        logger.error(`example non transaction DB Connection error\n: ${JSON.stringify(err)}`);
-        return false;
-    }
-};
 
 exports.user = async function (req, res) {
     
@@ -62,55 +46,63 @@ exports.user = async function (req, res) {
             }
         }, async (res, body) => {
             try {
-                console.log('유효성 결과 >>', JSON.parse(body.body));
+                console.log('valid test result >>', JSON.parse(body.body));
 
-                // 사용자 정보 조회
-                request.get({
-                    url: "https://kapi.kakao.com/v2/user/me",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`
-                    }
-                }, async (res, body) => {
-                    try {
-                        const kakaopkID = JSON.parse(body.body).id;
+                if (JSON.parse(body.body).msg == 'this access token does not exist') {
+                    isValid = 0;
 
-                        console.log('kakaopkID >>', kakaopkID);
-                        console.log('user data >>', JSON.parse(body.body));
+                    const userData = {
+                        isValid: isValid
+                    };
 
+                    resolve(userData);
+                }
+                else {
+                    // 사용자 정보 조회
+                    request.get({
+                        url: "https://kapi.kakao.com/v2/user/me",
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`
+                        }
+                    }, async (res, body) => {
                         try {
-                            const [rows] = await indexDao.duplicateCheck(kakaopkID);
-                            isDuplicated = rows.isDuplicated;
+                            const kakaopkID = JSON.parse(body.body).id;
+                            console.log('kakaopkID >>', kakaopkID);
 
-                            console.log('isDuplicated >>', isDuplicated);
+                            try {
+                                const name = JSON.parse(body.body).properties.nickname;
+                                const rows = await indexDao.duplicateCheck(kakaopkID);
+                                isDuplicated = rows[0].isDuplicate;
 
-                            if (isDuplicated == 0) {
-                                const rows = await indexDao.addUser(kakaopkID);
-                                userIndex = rows.insertId;
-                                console.log('사용자 추가 >>', userIndex);
+                                console.log('isDuplicated >>', isDuplicated);
+
+                                if (isDuplicated == 0) {
+                                    const rows = await indexDao.addUser(name, kakaopkID);
+                                    userIndex = rows.insertId;
+                                }
+                                else if (isDuplicated == 1) {
+                                    const rows = await indexDao.getUserIndex(kakaopkID);
+                                    userIndex = rows[0].userIndex;
+                                }
+
+                                const userData = {
+                                    userIndex: userIndex,
+                                    userName: name,
+                                    isDuplicated: isDuplicated,
+                                    isValid: isValid
+                                };
+                                resolve(userData);
+
+                            } catch (err) {
+                                console.log(err);
+                                return
                             }
-                            else if (isDuplicated == 1) {
-                                userIndex = rows.userIndex;
-                                console.log('user index >>', userIndex);
-                            }
-
-                            let userName = '';
-
-                            const userData = {
-                                userIndex: userIndex,
-                                isDuplicated: isDuplicated,
-                                userName: userName
-                            };
-                            resolve(userData);
                         } catch (err) {
                             console.log(err);
-                            isValid = 0;
                             return
                         }
-                    } catch (err) {
-                        console.log(err);
-                        return
-                    }
-                });
+                    });
+                }
             } catch (err) {
                 console.log(err);
                 return false;
@@ -120,10 +112,10 @@ exports.user = async function (req, res) {
 
     promise.then((value) => {
         userIndex = value.userIndex;
-        isDuplicated = value.isDuplicated;
         userName = value.userName;
-
-        console.log('result >>', userIndex, isDuplicated, userName);
+        isDuplicated = value.isDuplicated;
+        isValid = value.isValid
+        console.log('result >>', userIndex, userName, isDuplicated, isValid);
 
         if (isValid == 0) {
             res.json({
@@ -136,7 +128,7 @@ exports.user = async function (req, res) {
         let token = jwt.sign({
             id: userIndex
         },
-        
+
         secret_config.jwtsecret,
         {
             expiresIn: '365d',
@@ -159,16 +151,5 @@ exports.user = async function (req, res) {
                 message: "로그인 성공"
             });
         }
-        else {
-            res.json({
-                isSuccess: false,
-                code: 403
-            })
-        }
-
     })
-    
-
-    
-
 };
