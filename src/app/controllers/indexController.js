@@ -10,7 +10,7 @@ const indexDao = require('../dao/indexDao');
 
 console.log('indexController 실행 중');
 
-exports.user = async function (req, res) {
+exports.login = async function (req, res) {
     
     const accessToken = req.body.accessToken;
 
@@ -153,3 +153,52 @@ exports.user = async function (req, res) {
         }
     })
 };
+
+exports.user = async function (req, res) {
+
+    try {
+        const userIndex = req.verifiedToken.id;
+        
+        // 메인 페이지 불러오기
+        try {
+            const rows = await indexDao.mainPage(userIndex);
+
+            res.json({
+                userInfo: {
+                    "name": rows[0].name,
+                    "continuous": rows[0].continuous,
+                    "ranking": rows[0].ranking,
+                    "rankingPercent": rows[0].rankingPercent,
+                    "isSolvedToday": rows[0].isSolvedToday
+                },
+                solvedMissions: {
+                "title": rows[0].title,
+                "date": rows[0].date  
+                },
+                isSuccess: true,
+                code: 200,
+                message: "유저 정보 조회 성공"
+            });
+            return
+        } catch (err) {
+            console.log(err);
+            res.json({
+                isSuccess: false,
+                code: 402,
+                message: "메인 페이지 조회 실패"
+            });
+            return
+        }
+    } catch (err) {
+        console.log(err);
+        res.json({
+            isSuccess: false,
+            code: 403,
+            message: "토큰 검증 실패"
+        });
+        return
+    }
+
+    
+    
+}
