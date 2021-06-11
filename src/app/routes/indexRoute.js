@@ -2,15 +2,11 @@ module.exports = function(app){
     const index = require('../controllers/indexController');
     const jwtMiddleware = require('../../../config/jwtMiddleware');
 
-    app.get('/app', index.default);
+    // 소셜 로그인
+    app.post('/user', index.login);
 
-    // Access Token 전송
-    app.post('/valid-token', index.valid);
+    // 메인 페이지 (유저 정보 페이지)
+    app.get('/user', index.user);
 
-    // Access Token 유효성 검사
-    app.get('/valid-token', index.valid);
-
-    // 메인 (유저 프로필)
-    //app.get('/', index.main);
 
 };
