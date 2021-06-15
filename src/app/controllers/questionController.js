@@ -1,6 +1,7 @@
 const {pool} = require('../../../config/database');
 const {logger} = require('../../../config/winston');
 
+const indexDao = require('../dao/indexDao');
 const questionDao = require('../dao/questionDao');
 
 submitQuestionAnswer = async (req, res) => {
@@ -8,6 +9,7 @@ submitQuestionAnswer = async (req, res) => {
         answer1, answer2, answer3, answer4, answer5
     } = req.body
     // const userIndex = req.verifiedToken.userIndex;
+    let userIndex = 1; // 임시
 
     // answers 검증
     try {
@@ -42,9 +44,9 @@ submitQuestionAnswer = async (req, res) => {
     }
 
     // answers 저장
-    let userIndex = 1; // 임시
+    const date = new Date();
     const answerList = [answer1, answer2, answer3, answer4, answer5];
-    const today = date.getFullYear() + 
+    const today = date.getFullYear();
     answerList.forEach(async (item, index) => {
         try {
             await questionDao.insertQuestionAnswer(userIndex, index+1, item, today);
@@ -54,6 +56,13 @@ submitQuestionAnswer = async (req, res) => {
         }
     });
         
+    // 유저 사이클 수정
+    try {
+        await indexDao.updateCycle(userIndex);
+    } catch(err) {
+        logger.error(`API 4 - Update user cycle Error\n: ${JSON.stringify(err)}`);
+    }
+
     // 추천 시스템으로 미션 아이디 선택
     let missionIndex = 1; // 임시
 
