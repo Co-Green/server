@@ -145,7 +145,6 @@ exports.login = async function (req, res) {
         }
         else if (isDuplicated == 1) {
             res.json({
-                jwt: token,
                 isSuccess: true,
                 code: 201,
                 message: "로그인 성공"
