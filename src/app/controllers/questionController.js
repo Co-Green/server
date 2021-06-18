@@ -1,6 +1,7 @@
 const {pool} = require('../../../config/database');
 const {logger} = require('../../../config/winston');
 
+const indexDao = require('../dao/indexDao');
 const questionDao = require('../dao/questionDao');
 
 submitQuestionAnswer = async (req, res) => {
@@ -8,6 +9,8 @@ submitQuestionAnswer = async (req, res) => {
         answer1, answer2, answer3, answer4, answer5
     } = req.body
     // const userIndex = req.verifiedToken.userIndex;
+    let userIndex = 1; // 임시
+    let missionIndex = 0;
 
     // answers 검증
     try {
@@ -42,9 +45,9 @@ submitQuestionAnswer = async (req, res) => {
     }
 
     // answers 저장
-    let userIndex = 1; // 임시
+    const date = new Date();
     const answerList = [answer1, answer2, answer3, answer4, answer5];
-    const today = date.getFullYear() + 
+    const today = date.getFullYear();
     answerList.forEach(async (item, index) => {
         try {
             await questionDao.insertQuestionAnswer(userIndex, index+1, item, today);
@@ -54,8 +57,29 @@ submitQuestionAnswer = async (req, res) => {
         }
     });
         
+    // 유저 사이클 수정
+    try {
+        await indexDao.updateCycle(userIndex);
+    } catch(err) {
+        logger.error(`API 4 - Update user cycle Error\n: ${JSON.stringify(err)}`);
+        return;
+    }
+
     // 추천 시스템으로 미션 아이디 선택
-    let missionIndex = 1; // 임시
+    try {
+        // 유사도 높은 상위 30개 미션 불러오기
+        const [similarMissionRows] = await questionDao.selectSimilarMissions(answerList);
+
+        // 유저가 사이클에서 수행한 미션 불러오기
+        const [solvedMissionInCycle] = await questionDao.selectSolvedMissionInCycle(userIndex);
+
+        // 중복 제거 후 유사도 가장 높은 미션 인덱스 추출
+        missionIndex = await getRecommendIndex(similarMissionRows, solvedMissionInCycle);
+
+    } catch(err) {
+        logger.error(`API 4 - Recommend algorithms Error\n: ${JSON.stringify(err)}`);
+        return;
+    }
 
     // return
     try {
@@ -151,11 +175,13 @@ submitMissionAnswer = async (req, res) => {
     try {
         // 조회해서 row가 있으면 수정, 없으면 저장
         const selectMissionAnswerRows = await questionDao.selectMissionAnswer(missionIndex, userIndex);
+        const [userCycleRows] = await indexDao.getUserCycle(userIndex);
+    
         if (selectMissionAnswerRows.length === 0 ) {
             // 저장
             try {
                 if (temp)
-                    await questionDao.insertMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 1);
+                    await questionDao.insertMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 1, userCycleRows[0]);
                 else
                     await questionDao.insertMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 0);
             } catch (err) {
@@ -203,6 +229,21 @@ submitMissionAnswer = async (req, res) => {
     }
 };
 
+getRecommendIndex = async (simMissionRows, doneMissionRows) => {
+    let simIdxList = [];
+
+    await simMissionRows.forEach((row) => {
+        simIdxList.push(row.missionIndex)
+    });
+
+    let simIdxSet = new Set(simIdxList);
+
+    await doneMissionRows.forEach((row) => {
+        simIdxSet.delete(row.missionIndex);
+    });
+
+    return Array.from(Array.from(simIdxSet))[0];
+}
 
 module.exports = {
     submitQuestionAnswer,
