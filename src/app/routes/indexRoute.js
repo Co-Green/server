@@ -6,7 +6,6 @@ module.exports = function(app){
     app.post('/user', index.login);
 
     // 메인 페이지 (유저 정보 페이지)
-    app.get('/user', index.user);
-
+    app.get('/user',  jwtMiddleware, index.user);
 
 };

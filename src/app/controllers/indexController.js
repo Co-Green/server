@@ -155,6 +155,10 @@ exports.login = async function (req, res) {
 
 exports.user = async function (req, res) {
 
+    //const userIndex = req.verifiedToken.id;
+    //console.log('req.verifiedToken.id >>', req.verifiedToken.userIndex);
+    //console.log('ㅇ', req.headers['x-access-token']);
+
     try {
         const userIndex = req.verifiedToken.id;
         
