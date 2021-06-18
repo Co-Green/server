@@ -47,9 +47,25 @@ async function mainPage(userIndex) {
   return rows;
 }
 
+// 유저 사이클 수정
+async function updateCycle(userIndex) {
+  const connection = await pool.getConnection(async (conn) => conn);
+  const updateCycleQuery = `UPDATE User
+  SET missionCycleDate = IF (solvedMission = 0 OR solvedMission = 30, CURDATE(), missionCycleDate),
+      solvedMission = IF (solvedMission = 30, 1, solvedMission+1)
+  WHERE userIndex = 1;`;
+  const updateCycleParams = [userIndex];
+  const [updateCycleRows] = await connection.query(
+    updateCycleQuery,
+    updateCycleParams
+  );
+  connection.release();
+}
+
 module.exports = {
   duplicateCheck,
   addUser,
   getUserIndex,
-  mainPage
+  mainPage,
+  updateCycle,
 };

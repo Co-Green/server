@@ -71,13 +71,15 @@ selectMissionAnswer = async (missionIndex, userIndex) => {
     return [selectMissionAnswerRow];
 };
 
-insertMissionAnswer = async (missionIndex, userIndex, answer1, answer2, answer3, isTemp) => {
+insertMissionAnswer = async (missionIndex, userIndex, answer1, answer2, answer3, isTemp, userCycle) => {
     const connection = await pool.getConnection(async (conn) => conn);
     const insertMissionAnswerQuery = `
-        INSERT INTO missionAnswer(userIndex, missionIndex, answer1, answer2, answer3, isTemp)
+        INSERT INTO missionAnswer(userIndex, missionIndex, answer1, answer2, answer3, isTemp, cycleYear, cycleMonth)
         VALUES (
             ?, ?, ?, ?, ?,
-            IF (${isTemp} = 1, 1, 0)
+            IF (${isTemp} = 1, 1, 0),
+            Year(${userCycle}),
+            Month(${userCycle})
         );
       `;
     const insertMissionAnswerParams = [missionIndex, userIndex, answer1, answer2, answer3];
@@ -103,11 +105,54 @@ updateMissionAnswer = async (missionIndex, userIndex, answer1, answer2, answer3,
     connection.release();
 }
 
+selectSimilarMissions = async (answerList) => {
+  const connection = await pool.getConnection(async (conn) => conn);
+  const selectSimilarMissionsQuery = `
+      SELECT md.missionIndex, SQRT((
+          pow(? - SUBSTRING(GROUP_CONCAT(md.degree ORDER BY md.categoryIndex), 1, 1), 2)
+        + pow(? - SUBSTRING(GROUP_CONCAT(md.degree ORDER BY md.categoryIndex), 3, 1), 2)
+        + pow(? - SUBSTRING(GROUP_CONCAT(md.degree ORDER BY md.categoryIndex), 5, 1), 2)
+        + pow(? - SUBSTRING(GROUP_CONCAT(md.degree ORDER BY md.categoryIndex), 7, 1), 2)
+        + pow(? - SUBSTRING(GROUP_CONCAT(md.degree ORDER BY md.categoryIndex), 9, 1), 2)
+      ) / 5) as similarity
+      FROM missionData md
+      GROUP BY md.missionIndex
+      ORDER BY similarity LIMIT 30;
+    `;
+  const selectSimilarMissionsParams = answerList;
+  const [selectSimilarMissionsRow] = await connection.query(
+    selectSimilarMissionsQuery,
+    selectSimilarMissionsParams
+  );
+  connection.release();
+  return [selectSimilarMissionsRow];
+};
+
+selectSolvedMissionInCycle = async (userIndex) => {
+  const connection = await pool.getConnection(async (conn) => conn);
+  const selectSolvedMissionInCycleQuery = `
+  SELECT missionIndex
+  FROM missionAnswer
+  WHERE userIndex = ?
+    AND cycleYear = (SELECT Year(missionCycleDate) FROM User WHERE userIndex = ?)
+    AND cycleMonth = (SELECT MONTH(missionCycleDate) FROM User WHERE User.userIndex = ?);
+    `;
+  const selectSolvedMissionInCycleParams = [userIndex, userIndex, userIndex];
+  const [selectSolvedMissionInCycleRow] = await connection.query(
+    selectSolvedMissionInCycleQuery,
+    selectSolvedMissionInCycleParams
+  );
+  connection.release();
+  return [selectSolvedMissionInCycleRow];
+};
+
 module.exports = {
   insertQuestionAnswer,
   isValidMissionIndex,
   selectMissonAndAnswer,
   selectMissionAnswer,
   insertMissionAnswer,
-  updateMissionAnswer
+  updateMissionAnswer,
+  selectSimilarMissions,
+  selectSolvedMissionInCycle
 };
