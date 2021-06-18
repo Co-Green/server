@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const secret_config = require('./secret');
+
 const jwtMiddleware = (req, res, next) => {
     const token = req.headers['x-access-token'] || req.query.token;
     if(!token) {
