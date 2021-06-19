@@ -47,13 +47,28 @@ async function mainPage(userIndex) {
   return rows;
 }
 
+// 유저 사이클 조회
+async function getUserCycle(userIndex) {
+  const connection = await pool.getConnection(async (conn) => conn);
+  const getUserCycleQuery = `
+  SELECT DATE_FORMAT(missionCycleDate, '%Y-%m-%d') as missionCycleDate FROM User WHERE userIndex = ?;
+  `;
+  const getUserCycleParmas = [userIndex];
+  const [getUserCycleRows] = await connection.query(
+    getUserCycleQuery,
+    getUserCycleParmas
+  );
+  connection.release();
+  return [getUserCycleRows];
+}
+
 // 유저 사이클 수정
 async function updateCycle(userIndex) {
   const connection = await pool.getConnection(async (conn) => conn);
   const updateCycleQuery = `UPDATE User
   SET missionCycleDate = IF (solvedMission = 0 OR solvedMission = 30, CURDATE(), missionCycleDate),
       solvedMission = IF (solvedMission = 30, 1, solvedMission+1)
-  WHERE userIndex = 1;`;
+  WHERE userIndex = ?;`;
   const updateCycleParams = [userIndex];
   const [updateCycleRows] = await connection.query(
     updateCycleQuery,
@@ -67,5 +82,6 @@ module.exports = {
   addUser,
   getUserIndex,
   mainPage,
+  getUserCycle,
   updateCycle,
 };

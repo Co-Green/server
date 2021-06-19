@@ -71,24 +71,42 @@ selectMissionAnswer = async (missionIndex, userIndex) => {
     return [selectMissionAnswerRow];
 };
 
-insertMissionAnswer = async (missionIndex, userIndex, answer1, answer2, answer3, isTemp, userCycle) => {
-    const connection = await pool.getConnection(async (conn) => conn);
-    const insertMissionAnswerQuery = `
-        INSERT INTO missionAnswer(userIndex, missionIndex, answer1, answer2, answer3, isTemp, cycleYear, cycleMonth)
-        VALUES (
-            ?, ?, ?, ?, ?,
-            IF (${isTemp} = 1, 1, 0),
-            Year(${userCycle}),
-            Month(${userCycle})
-        );
-      `;
-    const insertMissionAnswerParams = [missionIndex, userIndex, answer1, answer2, answer3];
-    const insertMissionAnswerRow = await connection.query(
-      insertMissionAnswerQuery,
-      insertMissionAnswerParams
-    );
-    connection.release();
+insertMissionAnswer = async (userIndex, missionIndex, userCycle) => {
+  const connection = await pool.getConnection(async (conn) => conn);
+  const insertMissionAnswerQuery = `
+      INSERT INTO missionAnswer(userIndex, missionIndex, cycleYear, cycleMonth)
+      VALUES (
+          ?, ?,
+          YEAR(?),
+          MONTH(?)
+      );
+    `;
+  const insertMissionAnswerParams = [missionIndex, userIndex, userCycle, userCycle];
+  const insertMissionAnswerRow = await connection.query(
+    insertMissionAnswerQuery,
+    insertMissionAnswerParams
+  );
+  connection.release();
 }
+
+// insertMissionAnswer = async (missionIndex, userIndex, answer1, answer2, answer3, isTemp, userCycle) => {
+//     const connection = await pool.getConnection(async (conn) => conn);
+//     const insertMissionAnswerQuery = `
+//         INSERT INTO missionAnswer(userIndex, missionIndex, answer1, answer2, answer3, isTemp, cycleYear, cycleMonth)
+//         VALUES (
+//             ?, ?, ?, ?, ?,
+//             IF (${isTemp} = 1, 1, 0),
+//             Year(${userCycle}),
+//             Month(${userCycle})
+//         );
+//       `;
+//     const insertMissionAnswerParams = [missionIndex, userIndex, answer1, answer2, answer3];
+//     const insertMissionAnswerRow = await connection.query(
+//       insertMissionAnswerQuery,
+//       insertMissionAnswerParams
+//     );
+//     connection.release();
+// }
 
 updateMissionAnswer = async (missionIndex, userIndex, answer1, answer2, answer3, isTemp) => {
     const connection = await pool.getConnection(async (conn) => conn);

@@ -8,8 +8,7 @@ submitQuestionAnswer = async (req, res) => {
     let {
         answer1, answer2, answer3, answer4, answer5
     } = req.body
-    // const userIndex = req.verifiedToken.userIndex;
-    let userIndex = 1; // 임시
+    const userIndex = req.verifiedToken.id;
     let missionIndex = 0;
 
     // answers 검증
@@ -81,6 +80,14 @@ submitQuestionAnswer = async (req, res) => {
         return;
     }
 
+    try {
+        const [userCycleRows] = await indexDao.getUserCycle(userIndex);
+        await questionDao.insertMissionAnswer(missionIndex, userIndex, userCycleRows[0].missionCycleDate);
+    } catch(err) {
+        logger.error(`API 4 - create new mission Error\n: ${JSON.stringify(err)}`);
+        return;
+    }
+
     // return
     try {
         res.json({
@@ -98,8 +105,7 @@ submitQuestionAnswer = async (req, res) => {
 
 showMission = async (req, res) => {
     let missionIndex = req.params.id;
-    // const userIndex = req.verifiedToken.userIndex;
-    let userIndex = 1; // 임시
+    const userIndex = req.verifiedToken.id;
 
     // validation
     try {
@@ -137,8 +143,7 @@ showMission = async (req, res) => {
 
 submitMissionAnswer = async (req, res) => {
     let missionIndex = req.params.id;
-    // const userIndex = req.verifiedToken.userIndex;
-    let userIndex = 1; // 임시
+    const userIndex = req.verifiedToken.id;
     let temp = req.query.temporary;
     const {
         answer1, answer2, answer3
