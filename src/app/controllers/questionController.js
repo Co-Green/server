@@ -127,13 +127,16 @@ showMission = async (req, res) => {
     }
 
     try {
-        const [selectMissonAndAnswerRows] = await questionDao.selectMissonAndAnswer(missionIndex, userIndex);
+        const selectMissionInCycle = await questionDao.selectMissionInCycle(userIndex, missionIndex);
+        if (selectMissionInCycle.length === 0 )
+            return res.json({isSuccess: false, code: 404, message: "유효하지 않은 미션"});
+
         
         res.json({
             isSuccess: true,
             code: 200,
             message: "미션 조회 성공",
-            result: selectMissonAndAnswerRows[0]
+            result: selectMissionInCycle[0]
         })
     } catch(err) {
         logger.error(`API 5 - Select Query Error\n: ${JSON.stringify(err)}`);

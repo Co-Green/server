@@ -164,6 +164,25 @@ selectSolvedMissionInCycle = async (userIndex) => {
   return [selectSolvedMissionInCycleRow];
 };
 
+selectMissionInCycle = async (userIndex, missionIndex) => {
+  const connection = await pool.getConnection(async (conn) => conn);
+  const selectMissionInCycleQuery = `
+  SELECT missionIndex
+  FROM missionAnswer
+  WHERE userIndex = ?
+    AND missionIndex = ?
+    AND cycleYear = (SELECT Year(missionCycleDate) FROM User WHERE userIndex = ?)
+    AND cycleMonth = (SELECT MONTH(missionCycleDate) FROM User WHERE userIndex = ?);
+    `;
+  const selectMissionInCycleParams = [userIndex, missionIndex, userIndex, userIndex];
+  const [selectMissionInCycleRow] = await connection.query(
+    selectMissionInCycleQuery,
+    selectMissionInCycleParams
+  );
+  connection.release();
+  return selectMissionInCycleRow;
+};
+
 module.exports = {
   insertQuestionAnswer,
   isValidMissionIndex,
@@ -172,5 +191,6 @@ module.exports = {
   insertMissionAnswer,
   updateMissionAnswer,
   selectSimilarMissions,
-  selectSolvedMissionInCycle
+  selectSolvedMissionInCycle,
+  selectMissionInCycle,
 };
