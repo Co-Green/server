@@ -155,16 +155,20 @@ exports.login = async function (req, res) {
 
 exports.user = async function (req, res) {
 
-    //const userIndex = req.verifiedToken.id;
-    //console.log('req.verifiedToken.id >>', req.verifiedToken.userIndex);
-    //console.log('ㅇ', req.headers['x-access-token']);
-
     try {
         const userIndex = req.verifiedToken.id;
         
         // 메인 페이지 불러오기
         try {
             const rows = await indexDao.mainPage(userIndex);
+
+            const titleList = rows[0].title.split(',');
+            const dateList = rows[0].date.split(',');
+            const solvedMissionList = [];
+
+            for (var i = 0; i < titleList.length; i++) {
+                solvedMissionList.push([titleList[i], dateList[i]])
+            }
 
             res.json({
                 userInfo: {
@@ -174,10 +178,7 @@ exports.user = async function (req, res) {
                     "rankingPercent": rows[0].rankingPercent,
                     "isSolvedToday": rows[0].isSolvedToday
                 },
-                solvedMissions: {
-                "title": rows[0].title,
-                "date": rows[0].date  
-                },
+                solvedMissions: solvedMissionList,
                 isSuccess: true,
                 code: 200,
                 message: "유저 정보 조회 성공"
