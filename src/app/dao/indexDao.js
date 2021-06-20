@@ -38,8 +38,8 @@ async function mainPage(userIndex) {
     (SELECT COUNT(*) + 1 FROM User u2 WHERE u1.solvedMission < u2.solvedMission) AS ranking,
     (SELECT ranking / (SELECT COUNT(*) FROM User u2)) AS rankingPercent,
     (SELECT COUNT(*) FROM missionAnswer ma WHERE ma.userIndex = ${userIndex} AND ma.solvedDate = CURDATE()) AS isSolvedToday,
-    (SELECT GROUP_CONCAT(title SEPARATOR ', ') FROM Mission m INNER JOIN missionAnswer ma ON m.missionIndex = ma.missionIndex AND ma.userIndex = ${userIndex} AND ma.isTemp != 1) AS title,
-    (SELECT GROUP_CONCAT(solvedDate SEPARATOR ', ') FROM missionAnswer WHERE userIndex = ${userIndex} AND isTemp != 1) AS date
+    (SELECT GROUP_CONCAT(title SEPARATOR ',') FROM Mission m INNER JOIN missionAnswer ma ON m.missionIndex = ma.missionIndex AND ma.userIndex = ${userIndex} AND ma.isTemp != 1) AS title,
+    (SELECT GROUP_CONCAT(solvedDate SEPARATOR ',') FROM missionAnswer WHERE userIndex = ${userIndex} AND isTemp != 1) AS date
     FROM User u1
     WHERE userIndex = ${userIndex};`;
   const [rows] = await connection.query(getMainPageQuery);
