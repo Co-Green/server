@@ -8,8 +8,7 @@ submitQuestionAnswer = async (req, res) => {
     let {
         answer1, answer2, answer3, answer4, answer5
     } = req.body
-    // const userIndex = req.verifiedToken.userIndex;
-    let userIndex = 1; // 임시
+    const userIndex = req.verifiedToken.id;
     let missionIndex = 0;
 
     // answers 검증
@@ -81,6 +80,14 @@ submitQuestionAnswer = async (req, res) => {
         return;
     }
 
+    try {
+        const [userCycleRows] = await indexDao.getUserCycle(userIndex);
+        await questionDao.insertMissionAnswer(missionIndex, userIndex, userCycleRows[0].missionCycleDate);
+    } catch(err) {
+        logger.error(`API 4 - create new mission Error\n: ${JSON.stringify(err)}`);
+        return;
+    }
+
     // return
     try {
         res.json({
@@ -98,8 +105,7 @@ submitQuestionAnswer = async (req, res) => {
 
 showMission = async (req, res) => {
     let missionIndex = req.params.id;
-    // const userIndex = req.verifiedToken.userIndex;
-    let userIndex = 1; // 임시
+    const userIndex = req.verifiedToken.id;
 
     // validation
     try {
@@ -121,13 +127,19 @@ showMission = async (req, res) => {
     }
 
     try {
+        const selectMissionInCycle = await questionDao.selectMissionInCycle(userIndex, missionIndex);
+        if (selectMissionInCycle.length === 0 )
+            return res.json({isSuccess: false, code: 404, message: "유효하지 않은 미션"});
+
         const [selectMissonAndAnswerRows] = await questionDao.selectMissonAndAnswer(missionIndex, userIndex);
+
+        const result = selectMissonAndAnswerRows[0]
         
         res.json({
             isSuccess: true,
             code: 200,
             message: "미션 조회 성공",
-            result: selectMissonAndAnswerRows[0]
+            result
         })
     } catch(err) {
         logger.error(`API 5 - Select Query Error\n: ${JSON.stringify(err)}`);
@@ -137,8 +149,7 @@ showMission = async (req, res) => {
 
 submitMissionAnswer = async (req, res) => {
     let missionIndex = req.params.id;
-    // const userIndex = req.verifiedToken.userIndex;
-    let userIndex = 1; // 임시
+    const userIndex = req.verifiedToken.id;
     let temp = req.query.temporary;
     const {
         answer1, answer2, answer3
@@ -162,6 +173,10 @@ submitMissionAnswer = async (req, res) => {
         if (isValidMissionIndexRows.length === 0 )
             return res.json({isSuccess: false, code: 404, message: "존재하지 않는 미션"});
 
+        const selectMissionInCycle = await questionDao.selectMissionInCycle(userIndex, missionIndex);
+        if (selectMissionInCycle.length === 0 )
+            return res.json({isSuccess: false, code: 404, message: "유효하지 않은 미션"});
+
         if (!temp) {
             if (!answer1 || !answer2 || !answer3) {
                 return res.json({isSuccess: false, code: 400, message: "답변 미입력"});
@@ -173,41 +188,25 @@ submitMissionAnswer = async (req, res) => {
     }
 
     try {
-        // 조회해서 row가 있으면 수정, 없으면 저장
-        const selectMissionAnswerRows = await questionDao.selectMissionAnswer(missionIndex, userIndex);
         const [userCycleRows] = await indexDao.getUserCycle(userIndex);
     
-        if (selectMissionAnswerRows.length === 0 ) {
-            // 저장
-            try {
-                if (temp)
-                    await questionDao.insertMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 1, userCycleRows[0]);
-                else
-                    await questionDao.insertMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 0);
-            } catch (err) {
-                logger.error(`API 6 - Insert Query Error\n: ${JSON.stringify(err)}`);
-                return;
-            }
-        } else {
-            // 수정
-            try {
-                if (temp)
-                    await questionDao.updateMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 1);
-                else
-                    await questionDao.updateMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 0);
-            } catch (err) {
-                logger.error(`API 6 - Update Query Error\n: ${JSON.stringify(err)}`);
-                return;
-            }
+        try {
+            if (temp)
+                await questionDao.updateMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 1);
+            else
+                await questionDao.updateMissionAnswer(missionIndex, userIndex, answer1, answer2, answer3, 0);
+        } catch (err) {
+            logger.error(`API 6 - Update Query Error\n: ${JSON.stringify(err)}`);
+            return;
         }
 
         const [selectMissonAndAnswerRows] = await questionDao.selectMissonAndAnswer(missionIndex, userIndex);
 
         const result = {
             day: selectMissonAndAnswerRows[0].day,
-            missionIndex: selectMissonAndAnswerRows[0].missionIndex,
+            missionIdx: selectMissonAndAnswerRows[0].missionIndex,
             title: selectMissonAndAnswerRows[0].title
-        };
+        }
         
         if (temp) { // 임시 저장 리턴
             res.json({
