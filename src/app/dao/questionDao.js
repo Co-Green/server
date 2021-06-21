@@ -37,16 +37,21 @@ selectMissonAndAnswer = async (missionIndex, userIndex) => {
     const connection = await pool.getConnection(async (conn) => conn);
     const selectMissonAndAnswerQuery = `
     SELECT
-        u.solvedMission AS day,
-        m.missionIndex, m.title, m.description,
-        m.question1, m.question2, m.question3,
-        (SELECT answer1 FROM missionAnswer WHERE m.missionIndex = ? AND u.userIndex = ?) as answer1,
-        (SELECT answer2 FROM missionAnswer WHERE m.missionIndex = ? AND u.userIndex = ?) as answer2,
-        (SELECT answer3 FROM missionAnswer WHERE m.missionIndex = ? AND u.userIndex = ?) as answer3
-    FROM Mission m, User u
-    WHERE m.missionIndex = ? AND u.userIndex = ?;
+    u.solvedMission AS day,
+    m.missionIndex, m.title, m.description,
+    m.question1, m.question2, m.question3,
+    answer.answer1, answer2, answer3
+FROM Mission m, User u, (
+        SELECT answer1, answer2, answer3
+        FROM missionAnswer
+        WHERE userIndex = ?
+        AND missionIndex = ?
+        AND cycleYear = (SELECT Year(missionCycleDate) FROM User WHERE userIndex = ?)
+        AND cycleMonth = (SELECT MONTH(missionCycleDate) FROM User WHERE userIndex = ?)
+    ) as answer
+WHERE m.missionIndex = ? AND u.userIndex = ?;
       `;
-    const selectMissonAndAnswerParams = [missionIndex, userIndex, missionIndex, userIndex, missionIndex, userIndex, missionIndex, userIndex];
+    const selectMissonAndAnswerParams = [userIndex, missionIndex, userIndex, userIndex, missionIndex, userIndex];
     const [selectMissonAndAnswerRow] = await connection.query(
       selectMissonAndAnswerQuery,
       selectMissonAndAnswerParams
@@ -71,33 +76,34 @@ selectMissionAnswer = async (missionIndex, userIndex) => {
     return [selectMissionAnswerRow];
 };
 
-insertMissionAnswer = async (missionIndex, userIndex, answer1, answer2, answer3, isTemp, userCycle) => {
-    const connection = await pool.getConnection(async (conn) => conn);
-    const insertMissionAnswerQuery = `
-        INSERT INTO missionAnswer(userIndex, missionIndex, answer1, answer2, answer3, isTemp, cycleYear, cycleMonth)
-        VALUES (
-            ?, ?, ?, ?, ?,
-            IF (${isTemp} = 1, 1, 0),
-            Year(${userCycle}),
-            Month(${userCycle})
-        );
-      `;
-    const insertMissionAnswerParams = [missionIndex, userIndex, answer1, answer2, answer3];
-    const insertMissionAnswerRow = await connection.query(
-      insertMissionAnswerQuery,
-      insertMissionAnswerParams
-    );
-    connection.release();
+insertMissionAnswer = async (userIndex, missionIndex, userCycle) => {
+  const connection = await pool.getConnection(async (conn) => conn);
+  const insertMissionAnswerQuery = `
+      INSERT INTO missionAnswer(userIndex, missionIndex, cycleYear, cycleMonth)
+      VALUES (
+          ?, ?,
+          YEAR(?),
+          MONTH(?)
+      );
+    `;
+  const insertMissionAnswerParams = [missionIndex, userIndex, userCycle, userCycle];
+  const insertMissionAnswerRow = await connection.query(
+    insertMissionAnswerQuery,
+    insertMissionAnswerParams
+  );
+  connection.release();
 }
 
 updateMissionAnswer = async (missionIndex, userIndex, answer1, answer2, answer3, isTemp) => {
     const connection = await pool.getConnection(async (conn) => conn);
     const updateMissionAnswerQuery = `
-        UPDATE missionAnswer
-        SET answer1 = ?, answer2 = ?, answer3 = ?, isTemp = ?
-        WHERE missionIndex = ? AND userIndex = ?;
+    UPDATE missionAnswer
+    SET answer1 = ?, answer2 = ?, answer3 = ?, isTemp = ?
+    WHERE missionIndex = ? AND userIndex = ?
+          AND cycleYear = (SELECT Year(missionCycleDate) FROM User WHERE userIndex = ?)
+          AND cycleMonth = (SELECT MONTH(missionCycleDate) FROM User WHERE User.userIndex = ?);
       `;
-    const updateMissionAnswerParams = [answer1, answer2, answer3, isTemp, missionIndex, userIndex];
+    const updateMissionAnswerParams = [answer1, answer2, answer3, isTemp, missionIndex, userIndex, userIndex, userIndex];
     const updateMissionAnswerRow = await connection.query(
       updateMissionAnswerQuery,
       updateMissionAnswerParams
@@ -146,6 +152,25 @@ selectSolvedMissionInCycle = async (userIndex) => {
   return [selectSolvedMissionInCycleRow];
 };
 
+selectMissionInCycle = async (userIndex, missionIndex) => {
+  const connection = await pool.getConnection(async (conn) => conn);
+  const selectMissionInCycleQuery = `
+  SELECT missionIndex
+  FROM missionAnswer
+  WHERE userIndex = ?
+    AND missionIndex = ?
+    AND cycleYear = (SELECT Year(missionCycleDate) FROM User WHERE userIndex = ?)
+    AND cycleMonth = (SELECT MONTH(missionCycleDate) FROM User WHERE userIndex = ?);
+    `;
+  const selectMissionInCycleParams = [userIndex, missionIndex, userIndex, userIndex];
+  const [selectMissionInCycleRow] = await connection.query(
+    selectMissionInCycleQuery,
+    selectMissionInCycleParams
+  );
+  connection.release();
+  return selectMissionInCycleRow;
+};
+
 module.exports = {
   insertQuestionAnswer,
   isValidMissionIndex,
@@ -154,5 +179,6 @@ module.exports = {
   insertMissionAnswer,
   updateMissionAnswer,
   selectSimilarMissions,
-  selectSolvedMissionInCycle
+  selectSolvedMissionInCycle,
+  selectMissionInCycle,
 };
