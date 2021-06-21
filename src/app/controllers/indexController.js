@@ -177,7 +177,7 @@ exports.user = async function (req, res) {
                     "name": rows[0].name,
                     "continuous": rows[0].continuous,
                     "ranking": rows[0].ranking,
-                    "rankingPercent": rows[0].rankingPercent,
+                    "rankingPercent": Number(rows[0].rankingPercent),
                     "isSolvedToday": rows[0].isSolvedToday
                 },
                 solvedMissions: solvedMissionList,
