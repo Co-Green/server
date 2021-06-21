@@ -4,8 +4,8 @@
   "description": "node-server",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js",
+    "test": "nodemon index.js",
+    "start": "pm2 start index.js --name cogreen",
     "dev": "NODE_ENV=development node index.js",
     "prod": "NODE_ENV=production node index.js"
   },

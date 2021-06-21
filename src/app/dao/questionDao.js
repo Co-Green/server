@@ -76,7 +76,7 @@ selectMissionAnswer = async (missionIndex, userIndex) => {
     return [selectMissionAnswerRow];
 };
 
-insertMissionAnswer = async (userIndex, missionIndex, userCycle) => {
+insertMissionAnswer = async (missionIndex, userIndex, userCycle) => {
   const connection = await pool.getConnection(async (conn) => conn);
   const insertMissionAnswerQuery = `
       INSERT INTO missionAnswer(userIndex, missionIndex, cycleYear, cycleMonth)
@@ -86,7 +86,7 @@ insertMissionAnswer = async (userIndex, missionIndex, userCycle) => {
           MONTH(?)
       );
     `;
-  const insertMissionAnswerParams = [missionIndex, userIndex, userCycle, userCycle];
+  const insertMissionAnswerParams = [userIndex, missionIndex, userCycle, userCycle];
   const insertMissionAnswerRow = await connection.query(
     insertMissionAnswerQuery,
     insertMissionAnswerParams
