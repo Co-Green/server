@@ -167,7 +167,9 @@ exports.user = async function (req, res) {
             const solvedMissionList = [];
 
             for (var i = 0; i < titleList.length; i++) {
-                solvedMissionList.push([titleList[i], dateList[i]])
+                solvedMissionList.push(
+                    {title: titleList[i], date: dateList[i]}
+                )
             }
 
             res.json({
