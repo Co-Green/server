@@ -121,7 +121,7 @@ exports.login = async function (req, res) {
             res.json({
                 isSuccess: false,
                 code: 401,
-                message: "유효하지 않은 토큰"
+                message: "유효하지 않은 카카오 토큰"
             });
         }
 
@@ -177,7 +177,7 @@ exports.user = async function (req, res) {
                     "name": rows[0].name,
                     "continuous": rows[0].continuous,
                     "ranking": rows[0].ranking,
-                    "rankingPercent": Number(rows[0].rankingPercent),
+                    "rankingPercent": parseFloat(rows[0].rankingPercent),
                     "isSolvedToday": rows[0].isSolvedToday
                 },
                 solvedMissions: solvedMissionList,
