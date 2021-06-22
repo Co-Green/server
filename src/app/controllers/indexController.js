@@ -145,6 +145,7 @@ exports.login = async function (req, res) {
         }
         else if (isDuplicated == 1) {
             res.json({
+                jwt: token,
                 isSuccess: true,
                 code: 201,
                 message: "로그인 성공"
@@ -157,14 +158,25 @@ exports.user = async function (req, res) {
 
     try {
         const userIndex = req.verifiedToken.id;
-        
+
         // 메인 페이지 불러오기
         try {
             const rows = await indexDao.mainPage(userIndex);
-
-            const titleList = rows[0].title.split(',');
-            const dateList = rows[0].date.split(',');
+            var titleList = '';
+            var dateList = '';
+            var missionExist = 1;
             const solvedMissionList = [];
+
+            // 수행한 미션 없을 시
+            if (!rows[0].title) {
+                missionExist = 0;
+            }
+
+            // 수행한 미션 하나 이상 있을 시
+            else if (rows[0].title) {
+                titleList = rows[0].title.split(',');
+                dateList = rows[0].date.split(',');
+            }
 
             for (var i = 0; i < titleList.length; i++) {
                 solvedMissionList.push(
