@@ -37,7 +37,7 @@ async function mainPage(userIndex) {
   const getMainPageQuery = ` SELECT u1.userName AS name, u1.solvedMission AS continuous,
     (SELECT COUNT(*) + 1 FROM User u2 WHERE u1.solvedMission < u2.solvedMission) AS ranking,
     (SELECT ranking / (SELECT COUNT(*) FROM User u2)) AS rankingPercent,
-    (SELECT COUNT(*) FROM missionAnswer ma WHERE ma.userIndex = ${userIndex} AND DATE_FORMAT(ma.solvedDate, '%Y-%m-%d') = CURDATE()) AS isSolvedToday,
+    (SELECT COUNT(*) FROM missionAnswer ma WHERE ma.userIndex = ${userIndex} AND DATE_FORMAT(ma.solvedDate, '%Y-%m-%d') = CURDATE() AND ma.isTemp = 0) AS isSolvedToday,
     (SELECT GROUP_CONCAT(title SEPARATOR ',') FROM Mission m INNER JOIN missionAnswer ma ON m.missionIndex = ma.missionIndex AND ma.userIndex = ${userIndex} AND ma.isTemp != 1) AS title,
     (SELECT GROUP_CONCAT(DATE_FORMAT(solvedDate, '%Y-%m-%d') SEPARATOR ',') FROM missionAnswer WHERE userIndex = ${userIndex} AND isTemp != 1) AS date
     FROM User u1
