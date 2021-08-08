@@ -22,4 +22,4 @@
 |2|GET|/user|유저 정보 페이지|
 |3|POST|/questions|질문 제출|
 |4|GET|/missions/:id|수행 미션 제공|
-|5|PATCH|/missions/:id?emporary=TRUE/|미션 제출|
+|5|PATCH|/missions/:id?temporary=TRUE/|미션 제출|
